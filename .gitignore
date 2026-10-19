@@ -1,0 +1,11 @@
+node_modules
+.next
+.vercel
+.env
+.env.local
+.relay-data.json
+.relay-data.json.*.tmp
+coverage
+.vitest-cache
+*.tsbuildinfo
+*.log
