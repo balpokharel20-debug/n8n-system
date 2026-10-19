@@ -15,6 +15,7 @@ import {
 import {
   Activity,
   Blocks,
+  BriefcaseBusiness,
   Braces,
   Check,
   ChevronDown,
@@ -49,6 +50,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { leadCaptureWorkflow } from "@/lib/lead-capture-workflow";
 import type {
@@ -520,6 +522,7 @@ export function WorkflowStudio() {
           <button className={view === "canvas" ? "is-active" : ""} onClick={() => setView("canvas")}><Blocks size={16} /> Workflows <kbd>{workflows.length}</kbd></button>
           <button className={view === "runs" ? "is-active" : ""} onClick={() => setView("runs")}><ListChecks size={16} /> Executions <kbd>{executions.length}</kbd></button>
           <button className={view === "leads" ? "is-active" : ""} onClick={() => setView("leads")}><UsersRound size={16} /> Leads <kbd>{leads.filter((lead) => lead.status === "New").length}</kbd></button>
+          <Link className="main-nav__link" href="/web-aayo"><BriefcaseBusiness size={16} /> Web Aayo</Link>
         </nav>
 
         <div className="sidebar-heading"><span>MY WORKFLOWS</span><button onClick={createWorkflow} aria-label="New workflow"><Plus size={15} /></button></div>

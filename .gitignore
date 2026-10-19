@@ -5,6 +5,7 @@ node_modules
 .env.local
 .relay-data.json
 .relay-data.json.*.tmp
+.web-aayo-backups
 coverage
 .vitest-cache
 *.tsbuildinfo

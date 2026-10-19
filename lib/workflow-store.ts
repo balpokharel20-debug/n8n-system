@@ -1,5 +1,5 @@
 import { ensureSchema, getDatabase, hasDatabase } from "@/lib/db";
-import { readLocalData, updateLocalData, usesLocalPersistence } from "@/lib/local-store";
+import { readLocalData, updateLocalData, usesLocalFallback } from "@/lib/local-store";
 import type { Execution, StepResult, Workflow, WorkflowInput } from "@/lib/types";
 
 function workflowFromDocument(document: Record<string, unknown> | null): Workflow | null {
@@ -15,7 +15,7 @@ function executionFromDocument(document: Record<string, unknown>): Execution {
 
 export async function listWorkflows(): Promise<Workflow[]> {
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     const data = await readLocalData();
     return data.workflows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
@@ -31,7 +31,7 @@ export async function listWorkflows(): Promise<Workflow[]> {
 
 export async function getWorkflow(id: string): Promise<Workflow | null> {
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     const data = await readLocalData();
     return data.workflows.find((item) => item.id === id) ?? null;
   }
@@ -43,7 +43,7 @@ export async function getWorkflow(id: string): Promise<Workflow | null> {
 
 export async function getWorkflowBySlug(slug: string): Promise<Workflow | null> {
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     const data = await readLocalData();
     return data.workflows.find((item) => item.slug === slug) ?? null;
   }
@@ -59,7 +59,7 @@ export async function saveWorkflow(
 ): Promise<Workflow> {
   const now = new Date().toISOString();
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     return updateLocalData((data) => {
       const existing = data.workflows.find((item) => item.id === id);
       const workflow: Workflow = {
@@ -98,7 +98,7 @@ export async function saveWorkflow(
 
 export async function removeWorkflow(id: string) {
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     return updateLocalData((data) => {
       const existing = data.workflows.some((item) => item.id === id);
       data.workflows = data.workflows.filter((item) => item.id !== id);
@@ -134,7 +134,7 @@ export async function createExecution(
   };
 
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     await updateLocalData((data) => {
       data.executions.unshift(execution);
       data.executions = data.executions.slice(0, 1000);
@@ -157,7 +157,7 @@ export async function finishExecution(
 ) {
   const finishedAt = new Date().toISOString();
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     await updateLocalData((data) => {
       data.executions = data.executions.map((item) =>
         item.id === id ? { ...item, status, output, steps, error, finishedAt } : item,
@@ -176,7 +176,7 @@ export async function finishExecution(
 
 export async function listExecutions(limit = 30): Promise<Execution[]> {
   if (!hasDatabase) {
-    if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+    if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
     const data = await readLocalData();
     return data.executions
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt))

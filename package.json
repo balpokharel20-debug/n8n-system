@@ -9,6 +9,7 @@
     "start": "next start",
     "cron:local": "node scripts/local-cron.mjs",
     "auth:setup": "node scripts/setup-admin.mjs",
+    "web-aayo:migrate": "node --env-file=.env.local scripts/migrate-web-aayo.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

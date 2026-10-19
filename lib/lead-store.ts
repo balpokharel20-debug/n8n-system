@@ -1,5 +1,5 @@
 import { ensureSchema, getDatabase, hasDatabase } from "@/lib/db";
-import { readLocalData, updateLocalData, usesLocalPersistence } from "@/lib/local-store";
+import { readLocalData, updateLocalData, usesLocalFallback } from "@/lib/local-store";
 import type { Lead, LeadStatus } from "@/lib/types";
 
 type LeadInput = Pick<Lead, "externalId" | "name" | "phone" | "course" | "source">;
@@ -11,7 +11,7 @@ function leadFromDocument(document: Record<string, unknown> | null): Lead | null
 }
 
 function requireLocalPersistence() {
-  if (!usesLocalPersistence()) throw new Error("MongoDB is required outside local development.");
+  if (!usesLocalFallback()) throw new Error("MongoDB is required outside local development.");
 }
 
 export async function upsertLead(input: LeadInput): Promise<Lead> {

@@ -78,3 +78,18 @@ Each execution is bounded to 50 nodes, HTTP steps time out after 20 seconds, and
 - Local MongoDB is reachable only from this machine. A Vercel deployment must use a network-reachable database such as Atlas; do not put `127.0.0.1` in Vercel environment variables.
 
 # n8n-system
+
+## Web Aayo growth desk — phase one
+
+Open `/web-aayo` after signing into Relay. This first slice adds an authenticated prospect desk, bounded CSV/JSON import, manual lead scoring/statuses, suppression controls, a real-data overview, and a portable inactive n8n import bridge. Download the header-only CSV template from the page.
+
+Web Aayo records use `web_aayo_*` MongoDB collections so they cannot mix with the existing admissions `leads` collection. Before first use, run the dry-run migration, resolve any duplicate-key findings, then apply the backup-first index migration:
+
+```powershell
+npm run web-aayo:migrate
+npm run web-aayo:migrate -- --apply
+```
+
+Set `WEB_AAYO_SCHEMA_READY=true` only in an environment where the migration succeeded. Imports require the operator to confirm `source_usage_permitted`; contact permission defaults to unknown. This phase does not send messages, call an AI provider, scrape listings, or publish content. WF-01 is the only n8n JSON export and remains inactive; the local audit found no n8n instance or provider credentials to validate it against.
+
+See [`docs/web-aayo/`](docs/web-aayo/environment-audit.md) for the environment audit, architecture, migration/setup, security checklist, test status, recovery procedure, and workflow inventory. The NPR 50,000–60,000/month goal is a business target, not an automated or guaranteed outcome.

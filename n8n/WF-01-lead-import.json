@@ -1,0 +1,124 @@
+{
+  "name": "Web Aayo · WF-01 Lead import and validation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "web-aayo-leads-import",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "id": "7f039b8d-a59d-4dbf-987e-101a4e54df87",
+      "name": "Authenticated prospect import"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first()?.json ?? {};\nconst payload = input.body ?? input;\nconst rows = Array.isArray(payload) ? payload : payload.rows;\nif (!Array.isArray(rows) || rows.length === 0) throw new Error('Send a non-empty rows array.');\nif (rows.length > 1000) throw new Error('Import is limited to 1,000 rows.');\nif (rows.some((row) => !row || typeof row !== 'object' || Array.isArray(row))) throw new Error('Every row must be an object.');\nconst permitted = (value) => value === true || /^(1|true|yes|y|approved)$/i.test(String(value ?? ''));\nif (rows.some((row) => !permitted(row.source_usage_permitted))) throw new Error('Each row must explicitly confirm source_usage_permitted=true.');\nreturn [{ json: { rows } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "id": "901ad960-2ebc-42e9-bba0-4bc9f525965f",
+      "name": "Validate bounded import"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-RELAY-DOMAIN.example/api/web-aayo/leads/import",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { rows: $json.rows } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        300
+      ],
+      "id": "c78df5d5-5414-4058-8854-55983f74b2ce",
+      "name": "Save through authenticated Relay API"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1020,
+        300
+      ],
+      "id": "a9d1103d-a638-4f12-ac45-61e50473e34f",
+      "name": "Return import summary"
+    }
+  ],
+  "connections": {
+    "Authenticated prospect import": {
+      "main": [
+        [
+          {
+            "node": "Validate bounded import",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate bounded import": {
+      "main": [
+        [
+          {
+            "node": "Save through authenticated Relay API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save through authenticated Relay API": {
+      "main": [
+        [
+          {
+            "node": "Return import summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveManualExecutions": false
+  },
+  "versionId": "b13b8a94-f35a-4c15-9db7-9fc03bb5067d",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
