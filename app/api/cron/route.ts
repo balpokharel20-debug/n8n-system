@@ -1,24 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isValidCron } from "@/lib/auth";
 import { executeWorkflow } from "@/lib/executor";
+import { getCronCadence, isScheduledWorkflowDue } from "@/lib/scheduler";
 import { listScheduledWorkflows } from "@/lib/workflow-store";
 import { processLeadAutomations } from "@/lib/lead-automation";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function isDue(schedule: string | null, now: Date) {
-  if (schedule === "every-5-minutes") return true;
-  if (schedule === "hourly") return now.getUTCMinutes() < 5;
-  if (schedule === "daily") return now.getUTCHours() === 0 && now.getUTCMinutes() < 5;
-  return false;
-}
-
 export async function GET(request: NextRequest) {
   if (!isValidCron(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const now = new Date();
   const leadResults = await processLeadAutomations(now);
-  const due = (await listScheduledWorkflows()).filter((workflow) => isDue(workflow.schedule, now));
+  const cadence = getCronCadence();
+  const due = (await listScheduledWorkflows()).filter((workflow) =>
+    isScheduledWorkflowDue(workflow.schedule, now, cadence),
+  );
   const results = [];
 
   for (const workflow of due.slice(0, 10)) {

@@ -687,11 +687,11 @@ function NodeInspector({
         <>
           <label className="field-label">Frequency</label>
           <select className="select-input" value={workflow.schedule ?? "every-5-minutes"} onChange={(event) => setSchedule(event.target.value as Workflow["schedule"])}>
-            <option value="every-5-minutes">Every 5 minutes</option>
-            <option value="hourly">Every hour</option>
-            <option value="daily">Every day at 00:00 UTC</option>
+            <option value="every-5-minutes">Every 5 minutes (local / Vercel Pro)</option>
+            <option value="hourly">Every hour (local / Vercel Pro)</option>
+            <option value="daily">Once daily (Vercel Hobby)</option>
           </select>
-          <p className="field-help">The Vercel cron endpoint checks active workflows every five minutes.</p>
+          <p className="field-help">Vercel Hobby checks this workflow once daily at 09:00 Nepal time. Faster hosted schedules need a matching Pro cron configuration and <code>VERCEL_CRON_CADENCE</code>. Locally, the runner checks every minute.</p>
         </>
       )}
 

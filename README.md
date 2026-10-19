@@ -44,7 +44,7 @@ The example environment file leaves database and integration credentials blank, 
 4. Import this directory as a Vercel project and deploy.
 5. Open the deployment and sign in with the passphrase used to generate the hash.
 
-MongoDB indexes are created automatically on first use. The provided `vercel.json` invokes `/api/cron` every five minutes. Vercel plan limits may restrict cron frequency; webhook and manual triggers are unaffected. Locally, run `npm run cron:local` in a second terminal alongside `npm run dev` to check reminders once per minute. For a one-off local check, send `Authorization: Bearer <CRON_SECRET>` to `GET http://localhost:3000/api/cron`.
+MongoDB indexes are created automatically on first use. The provided `vercel.json` invokes `/api/cron` once per day at 03:15 UTC (09:00 in the default `Asia/Kathmandu` timezone), which is compatible with Vercel Hobby's daily cron limit. On Hobby, due lead reminders and daily workflows are checked once per day, so a reminder can arrive up to 24 hours after its 1-day or 3-day threshold. Hourly and five-minute workflows run locally, but need a matching Pro cron configuration and `VERCEL_CRON_CADENCE=hourly` or `VERCEL_CRON_CADENCE=five-minutes` when hosted. If you change `BUSINESS_TIMEZONE` or `DAILY_DIGEST_HOUR`, also adjust the Vercel cron's UTC time so it matches the digest hour. Webhook and manual triggers are unaffected. Locally, run `npm run cron:local` in a second terminal alongside `npm run dev` to check reminders once per minute. For a one-off local check, send `Authorization: Bearer <CRON_SECRET>` to `GET http://localhost:3000/api/cron`.
 
 ## Admissions lead pipeline
 
