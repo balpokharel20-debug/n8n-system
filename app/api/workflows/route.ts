@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { listWorkflows, saveWorkflow } from "@/lib/workflow-store";
 import { workflowSchema } from "@/lib/validation";
+import { getWorkflowActivationIssues } from "@/lib/workflow-readiness";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,15 @@ export async function POST(request: NextRequest) {
   const parsed = workflowSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid workflow payload." }, { status: 400 });
+  }
+  if (parsed.data.status === "active") {
+    const issues = getWorkflowActivationIssues(parsed.data);
+    if (issues.length) {
+      return NextResponse.json(
+        { error: `Cannot activate workflow: ${issues.join(" ")}`, issues },
+        { status: 422 },
+      );
+    }
   }
   try {
     const input = parsed.data;

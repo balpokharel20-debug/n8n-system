@@ -59,6 +59,8 @@ The first empty workspace is seeded with **Admissions lead follow-up**:
 5. In Meta, set the callback URL to `https://YOUR-DOMAIN/api/webhooks/YOUR-WORKFLOW-SLUG` and use the exact `META_VERIFY_TOKEN` value. POST requests are verified with `META_APP_SECRET`.
 6. Activate the workflow after all credentials pass a manual test.
 
+The authenticated **Setup** screen reports which required environment variables are present and performs a read-only MongoDB ping. It never returns secret values to the browser; provider credentials are presence-checked only. Active workflows are rejected by the API until the credentials required by their nodes are configured. For local work, use the ignored `.env.local`; for production, use Vercel Project Settings → Environment Variables and redeploy. Do not paste secrets into workflow node configuration.
+
 Captured leads appear in the **Leads** screen. Staff should change a lead to Called, Qualified, Enrolled, or Closed after contact. Only leads still marked New receive the Day 1 and Day 3 messages. At `DAILY_DIGEST_HOUR` in `BUSINESS_TIMEZONE`, the cron sends the uncalled list to Telegram.
 
 ## Runtime model

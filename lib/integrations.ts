@@ -263,7 +263,11 @@ export async function sendLeadFollowup(
   lead: Lead,
   options: { template: string; language?: string; sms: string },
 ) {
-  if (process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN) {
+  if (
+    process.env.WHATSAPP_PHONE_NUMBER_ID &&
+    process.env.WHATSAPP_ACCESS_TOKEN &&
+    process.env.META_GRAPH_API_VERSION
+  ) {
     return sendWhatsAppTemplate(lead, options.template, options.language ?? "en_US");
   }
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER) {

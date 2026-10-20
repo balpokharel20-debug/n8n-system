@@ -42,6 +42,7 @@ import {
   RefreshCw,
   Save,
   Send,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Webhook,
@@ -68,6 +69,21 @@ import type {
 import { WorkflowNodeCard } from "@/components/workflow-node";
 
 const nodeTypes = { workflow: WorkflowNodeCard };
+
+type SetupItem = {
+  id: string;
+  title: string;
+  status: "ready" | "missing" | "warning";
+  description: string;
+  variables: string[];
+};
+
+type SetupStatus = {
+  checkedAt: string;
+  items: SetupItem[];
+  summary: { ready: number; total: number; operational: boolean };
+  secretValuesExposed: false;
+};
 
 const nodeCatalog: Array<{
   kind: NodeKind;
@@ -189,7 +205,7 @@ export function WorkflowStudio() {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdge>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [view, setView] = useState<"canvas" | "runs" | "leads">("canvas");
+  const [view, setView] = useState<"canvas" | "runs" | "leads" | "setup">("canvas");
   const [addOpen, setAddOpen] = useState(false);
   const [runOpen, setRunOpen] = useState(false);
   const [runInput, setRunInput] = useState('{\n  "name": "Maya",\n  "email": "maya@example.com",\n  "score": 82\n}');
@@ -197,6 +213,9 @@ export function WorkflowStudio() {
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [lastExecution, setLastExecution] = useState<Execution | null>(null);
   const [origin, setOrigin] = useState("");
+  const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupError, setSetupError] = useState("");
   const seeded = useRef(false);
 
   const selectedNode = useMemo(
@@ -324,6 +343,19 @@ export function WorkflowStudio() {
       return null;
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function loadSetupStatus() {
+    setSetupLoading(true);
+    setSetupError("");
+    try {
+      const result = await api<SetupStatus>("/api/setup/status");
+      setSetupStatus(result);
+    } catch (error) {
+      setSetupError(error instanceof Error ? error.message : "Could not load setup status.");
+    } finally {
+      setSetupLoading(false);
     }
   }
 
@@ -456,6 +488,7 @@ export function WorkflowStudio() {
       setExecutions([]);
       setLeads([]);
       setCurrent(null);
+      setSetupStatus(null);
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : "Could not sign out." });
     }
@@ -522,6 +555,7 @@ export function WorkflowStudio() {
           <button className={view === "canvas" ? "is-active" : ""} onClick={() => setView("canvas")}><Blocks size={16} /> Workflows <kbd>{workflows.length}</kbd></button>
           <button className={view === "runs" ? "is-active" : ""} onClick={() => setView("runs")}><ListChecks size={16} /> Executions <kbd>{executions.length}</kbd></button>
           <button className={view === "leads" ? "is-active" : ""} onClick={() => setView("leads")}><UsersRound size={16} /> Leads <kbd>{leads.filter((lead) => lead.status === "New").length}</kbd></button>
+          <button className={view === "setup" ? "is-active" : ""} onClick={() => { setView("setup"); void loadSetupStatus(); }}><ShieldCheck size={16} /> Setup</button>
           <Link className="main-nav__link" href="/web-aayo"><BriefcaseBusiness size={16} /> Web Aayo</Link>
         </nav>
 
@@ -543,7 +577,9 @@ export function WorkflowStudio() {
       </aside>
 
       <section className="workspace">
-        {view === "leads" ? (
+        {view === "setup" ? (
+          <SetupView status={setupStatus} loading={setupLoading} error={setupError} onRefresh={() => void loadSetupStatus()} />
+        ) : view === "leads" ? (
           <LeadView leads={leads} onRefresh={() => void refresh()} onStatusChange={setLeadStatus} />
         ) : view === "runs" ? (
           <ExecutionView executions={executions} onRefresh={() => void refresh()} />
@@ -650,6 +686,72 @@ export function WorkflowStudio() {
 
       {notice && <div className={`toast toast--${notice.tone}`}>{notice.tone === "success" ? <Check size={15} /> : <CircleAlert size={15} />}{notice.text}</div>}
     </main>
+  );
+}
+
+function SetupView({
+  status,
+  loading,
+  error,
+  onRefresh,
+}: {
+  status: SetupStatus | null;
+  loading: boolean;
+  error: string;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="setup-page">
+      <header className="page-header setup-page__header">
+        <div>
+          <span className="eyebrow">RELAY OPERATIONS</span>
+          <h1>System setup</h1>
+          <p>Check the production configuration before switching on live workflows.</p>
+        </div>
+        <button className="secondary-button" onClick={onRefresh} disabled={loading}>
+          {loading ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}
+          Check again
+        </button>
+      </header>
+
+      <div className="setup-security-note">
+        <ShieldCheck size={17} />
+        <p><strong>Secrets stay private.</strong> This screen checks whether values are present and tests MongoDB with a read-only ping. It never returns environment values to your browser. Provider credentials are presence-checked, not sent a test message.</p>
+      </div>
+
+      {error && <div className="web-aayo-alert web-aayo-alert--error"><CircleAlert size={15} />{error}</div>}
+
+      {loading && !status ? (
+        <div className="setup-loading"><LoaderCircle className="spin" size={17} /> Checking server configuration…</div>
+      ) : status ? (
+        <>
+          <div className={`setup-summary ${status.summary.operational ? "is-ready" : "needs-work"}`}>
+            <div><span>{status.summary.operational ? <Check size={17} /> : <CircleAlert size={17} />}</span><div><strong>{status.summary.operational ? "Core configuration is present" : "Setup still needs attention"}</strong><small>{status.summary.ready} of {status.summary.total} checks ready · checked {new Date(status.checkedAt).toLocaleString()}</small></div></div>
+            <span className="setup-summary__privacy">Secret values exposed: no</span>
+          </div>
+
+          <div className="setup-grid">
+            {status.items.map((item) => (
+              <article className={`setup-card setup-card--${item.status}`} key={item.id}>
+                <header>
+                  <div><span className="setup-card__icon">{item.status === "ready" ? <Check size={15} /> : item.status === "warning" ? <CircleAlert size={15} /> : <KeyRound size={15} />}</span><h2>{item.title}</h2></div>
+                  <span className="setup-card__state">{item.status === "ready" ? "Ready" : item.status === "warning" ? "Local only" : "Needs setup"}</span>
+                </header>
+                <p>{item.description}</p>
+                <div className="setup-card__variables"><small>Environment variables</small>{item.variables.map((variable) => <code key={variable}>{variable}</code>)}</div>
+              </article>
+            ))}
+          </div>
+
+          <section className="setup-next-steps">
+            <div><strong>Where to configure these</strong><p>For local development, put values in the ignored <code>.env.local</code> file and restart the dev server. For production, add them under Vercel → Project → Settings → Environment Variables, then redeploy.</p></div>
+            <div><strong>Safe activation sequence</strong><p>Finish the required integrations, test each connection with a test lead, confirm approved message templates and consent, then activate the workflow. Activation is blocked while required settings are missing.</p></div>
+          </section>
+        </>
+      ) : (
+        <div className="setup-loading">Open Setup while signed in to inspect configuration readiness.</div>
+      )}
+    </div>
   );
 }
 
